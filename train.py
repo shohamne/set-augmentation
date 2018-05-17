@@ -9,6 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 from datasets.rotations_sets import RotationsSetsDataset
+from datasets.mnist_sets import MnistSetsDataset
 from datasets.augmentations import SubsampleDataset
 
 # Training settings
@@ -17,7 +18,7 @@ parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=1, metavar='N',
+parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr-decay-epoch', type=int, default=20, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -39,18 +40,20 @@ parser.add_argument('--labels-number', type=int, default=4, metavar='N',
                     help='how many sampels in the test set')
 parser.add_argument('--set-size-range', type=int, nargs=2, default=(10,100), metavar=('min','max'),
                     help='how many sampels in the test set')
-parser.add_argument('--max-set-new-size-train', type=int, default=60, metavar='N',
+parser.add_argument('--max-set-new-size-train', type=int, default=100, metavar='N',
                     help='maximum number of sampels in the train set after subsample')
-parser.add_argument('--new-sets-number-train', type=int, default=2, metavar='N',
+parser.add_argument('--new-sets-number-train', type=int, default=1, metavar='N',
                     help='number of new subsampled sets from each original set')
-parser.add_argument('--max-set-new-size-test', type=int, default=60, metavar='N',
+parser.add_argument('--max-set-new-size-test', type=int, default=100, metavar='N',
                     help='maximum number of sampels in the test set after subsample')
-parser.add_argument('--new-sets-number-test', type=int, default=2, metavar='N',
+parser.add_argument('--new-sets-number-test', type=int, default=1, metavar='N',
                     help='number of new subsampled sets from each original set')
 parser.add_argument('--random-sample', action='store_true', default=False,
                     help='id set random sampling of the sets is used')
 parser.add_argument('--result-file', type=str, default='/tmp/augmentation_result.csv', metavar='S',
                     help='file name for result')
+parser.add_argument('--data-set', choices=['rotations','mnist'], type=str, default='mnist', metavar='S',
+                    help='choose data set from [mnist,rotations]')
 
 args = parser.parse_args()
 
@@ -73,8 +76,15 @@ def main(args):
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
-    orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number, set_size_range=args.set_size_range)
-    orig_test_set = RotationsSetsDataset(args.test_set_size, args.labels_number, set_size_range=args.set_size_range)
+
+    if args.data_set == 'rotations':
+        orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number, set_size_range=args.set_size_range)
+        orig_test_set = RotationsSetsDataset(args.test_set_size, args.labels_number, set_size_range=args.set_size_range)
+        labels_number = args.labels_number
+    if args.data_set == 'mnist':
+        orig_train_set = MnistSetsDataset(train=True, set_size_range=args.set_size_range)
+        orig_test_set = MnistSetsDataset(train=False, set_size_range=args.set_size_range)
+        labels_number = 10
 
     train_set = SubsampleDataset(orig_train_set, args.max_set_new_size_train, args.new_sets_number_train, args.random_sample)
     test_set = SubsampleDataset(orig_test_set, args.max_set_new_size_test, args.new_sets_number_test, args.random_sample)
@@ -116,7 +126,7 @@ def main(args):
             self.fc5 = nn.Linear(50, 50)
             torch.nn.init.xavier_uniform(self.fc5.weight)
             self.fc5_bn = nn.BatchNorm1d(50)
-            self.fc6 = nn.Linear(50, args.labels_number)
+            self.fc6 = nn.Linear(50, labels_number)
             torch.nn.init.xavier_normal(self.fc6.weight)
 
 

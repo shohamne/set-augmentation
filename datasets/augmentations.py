@@ -40,7 +40,6 @@ class SubsampleDataset(Dataset):
         new_target = []
         orig_inds = []
         for i in range(len(sets_dataset)):
-            print(i,len(new_data))
             data, target = sets_dataset[i]
             subsampled_data = set_subsample(data, max_set_new_size, new_sets_number) \
                 if not random_sample else set_random_subsample(data, max_set_new_size, new_sets_number)
