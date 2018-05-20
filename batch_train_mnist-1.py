@@ -23,6 +23,7 @@ with open(train.args.result_file, 'w') as fp:
     writer.writeheader()
 
 tasks = []
+
 id = 0
 for seed in range(100,105):
     for set_size_range in [[10,100], [100,1000]]:
@@ -40,6 +41,9 @@ for seed in range(100,105):
                         new_args.set_size_range = set_size_range
                         new_args.seed = seed
                         tasks.append(new_args)
+
+tasks_df = pd.DataFrame([args.__dict__ for args in tasks ]).set_index(id).sort_index()
+tasks_df.to_csv('{}.tasks.csv'.format(train.args.result_file))
 
 if nproc > 1:
     pool = Pool(nproc)
