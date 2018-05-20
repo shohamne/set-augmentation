@@ -15,6 +15,8 @@ from datasets.augmentations import SubsampleDataset
 
 # Training settings
 parser = argparse.ArgumentParser(description='set augmentations test')
+parser.add_argument('--id', type=str, default='0', metavar='N',
+                    help='just an ID for logging')
 parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
@@ -233,6 +235,7 @@ def main(args):
     test_accuracies = []
     t0 = t2 = time.time()
     for epoch in range(1, args.epochs + 1):
+        print('ID: {}\t'.format(args.id))
         train(epoch, optimizer, lr)
         lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
         test_accuracy = test()
