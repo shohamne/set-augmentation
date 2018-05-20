@@ -191,7 +191,7 @@ def main(args):
                 correct += pred.eq(target.view_as(pred)).sum().item()
                 out.append(np.array(output))
 
-            print('\t\tTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+            print('\tTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
                 test_loss, correct, len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset)),
                 end="")
@@ -208,7 +208,7 @@ def main(args):
         group_correct = (group_target==group_pred).sum()
         accuracy = float(group_correct) / len(group_target)
 
-        print('\t\tGroup Test: Accuracy: {}/{} ({:.0f}%)'.format(
+        print('\tGroup Test: Accuracy: {}/{} ({:.0f}%)'.format(
             group_correct, len(group_target),
             100. * accuracy), end="")
 
@@ -223,7 +223,7 @@ def main(args):
     # for d,t in train_loader:
     #     for dd,tt in zip(d,t):
     #         z = np.array(dd)
-    #         plt.scatter(z[:, 0], z[:, 1], color=cmap[np.array(tt)])
+    #         plt.sscatter(z[:, 0], z[:, 1], color=cmap[np.array(tt)])
     #         plt.hold('on')
     #         #z = z.sum(axis=0)
     #         #plt.scatter(z[0], z[1], color=['r', 'b', 'g', 'c'][np.array(tt)],marker=1)
@@ -238,7 +238,7 @@ def main(args):
         test_accuracy = test()
         test_accuracies.append(test_accuracy)
         t1 = time.time()
-        print('Time: {}\tEpoch Time: {}'.format(t1-t0,t1-t2))
+        print('\tTime: {:.0f} Epoch Time: {.0f}'.format(t1-t0,t1-t2))
         t2 = time.time()
 
     results['test_accuracy'] = np.mean(test_accuracies[-10:])
