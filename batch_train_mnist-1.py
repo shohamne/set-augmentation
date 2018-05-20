@@ -11,11 +11,12 @@ train.args.epochs = 500
 train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
 
+if not os.path.exists('results'):
+    os.mkdir('results')
+    
 with open(train.args.result_file, 'w') as fp:
     writer = csv.DictWriter(fp, train.results.keys())
     writer.writeheader()
-
-
 
 tasks = []
 for seed in range(100,105):
