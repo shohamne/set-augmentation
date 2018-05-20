@@ -238,7 +238,7 @@ def main(args):
         test_accuracy = test()
         test_accuracies.append(test_accuracy)
         t1 = time.time()
-        print('\tTime: {:.0f} Epoch Time: {.0f}'.format(t1-t0,t1-t2))
+        print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1-t0,t1-t2))
         t2 = time.time()
 
     results['test_accuracy'] = np.mean(test_accuracies[-10:])
