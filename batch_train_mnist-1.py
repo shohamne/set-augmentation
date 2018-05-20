@@ -7,7 +7,7 @@ from copy import deepcopy
 from multiprocessing import Pool, cpu_count
 
 train.args.no_cuda = True
-train.args.batch_size = 2048
+train.args.batch_size = 512
 train.args.epochs = 500
 train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
