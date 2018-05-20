@@ -11,7 +11,8 @@ train.args.epochs = 500
 train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
 
-nproc = cpu_count()
+#nproc = cpu_count()
+nporc = 1
 
 if not os.path.exists('results'):
     os.mkdir('results')
