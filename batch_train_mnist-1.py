@@ -12,7 +12,7 @@ train.args.result_file = path.join('results','{}.csv'.format(path.basename(__fil
 train.args.data_set = 'mnist'
 
 #nproc = cpu_count()
-nporc = 1
+nproc = 1
 
 if not path.exists('results'):
     mkdir('results')
