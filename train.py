@@ -175,9 +175,17 @@ def main(args):
             #         100. * batch_idx / len(train_loader), loss.item(), accuracy, lr))
             losses.append(loss.item())
             accuracies.append(accuracy)
+
+        mean_losses =  np.mean(losses)
+        mean_accuracy = np.mean(accuracies)
+
         print('Train Epoch: {}\tLoss: {:.6f}\tAccuracy: {:.2f}\tLR: {}'.format(
-            epoch, np.mean(losses), np.mean(accuracies), lr),
+            epoch, np.mean(mean_losses), np.mean(mean_accuracy), lr),
             end="")
+
+        return mean_losses, mean_accuracy
+
+
 
     def test():
         model.eval()
@@ -233,10 +241,14 @@ def main(args):
 
     lr = args.lr
     test_accuracies = []
+    train_losses = []
+    train_accuracies = []
     t0 = t2 = time.time()
     for epoch in range(1, args.epochs + 1):
         print('ID: {}\t'.format(args.id), end="")
-        train(epoch, optimizer, lr)
+        train_loss, train_accuracy = train(epoch, optimizer, lr)
+        train_losses.append(train_loss)
+        train_accuracies.append(train_accuracy)
         lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
         test_accuracy = test()
         test_accuracies.append(test_accuracy)
@@ -244,6 +256,9 @@ def main(args):
         print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1-t0,t1-t2))
         t2 = time.time()
 
+    results['time'] = t2 - t0
+    results['train_loss'] = np.mean(test_losses[-10:])
+    results['train_accuracy'] = np.mean(test_accuracies[-10:])
     results['test_accuracy'] = np.mean(test_accuracies[-10:])
 
     print ('Final Test Accuracy: {:.2f}'.format(results['test_accuracy']) )
