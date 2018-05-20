@@ -8,7 +8,7 @@ from multiprocessing import Pool, cpu_count
 
 train.args.no_cuda = True
 train.args.epochs = 500
-train.args.result_file = path.join('results',path.basename(__file__))
+train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
 
 with open(train.args.result_file, 'w') as fp:
