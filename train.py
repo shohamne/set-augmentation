@@ -235,7 +235,7 @@ def main(args):
     test_accuracies = []
     t0 = t2 = time.time()
     for epoch in range(1, args.epochs + 1):
-        print('ID: {}\t'.format(args.id))
+        print('ID: {}\t'.format(args.id), end="")
         train(epoch, optimizer, lr)
         lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
         test_accuracy = test()
