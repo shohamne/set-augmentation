@@ -1,4 +1,4 @@
-from os import path
+from os import path, mkdir
 import train
 import csv
 import numpy as np
@@ -6,13 +6,13 @@ import pandas as pd
 from copy import deepcopy
 from multiprocessing import Pool, cpu_count
 
-train.args.no_cuda = True
+train.args.no_cuda = False
 train.args.epochs = 500
 train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
 
-if not os.path.exists('results'):
-    os.mkdir('results')
+if not path.exists('results'):
+    mkdir('results')
     
 with open(train.args.result_file, 'w') as fp:
     writer = csv.DictWriter(fp, train.results.keys())
