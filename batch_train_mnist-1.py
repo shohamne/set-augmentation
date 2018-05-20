@@ -42,7 +42,7 @@ for seed in range(100,105):
                         new_args.seed = seed
                         tasks.append(new_args)
 
-tasks_df = pd.DataFrame([args.__dict__ for args in tasks ]).set_index(id).sort_index()
+tasks_df = pd.DataFrame([args.__dict__ for args in tasks ]).set_index('id').sort_index()
 tasks_df.to_csv('{}.tasks.csv'.format(train.args.result_file))
 
 if nproc > 1:
