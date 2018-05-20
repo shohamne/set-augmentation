@@ -31,8 +31,8 @@ for seed in range(100,105):
                 for new_sets_number_train in [int(np.ceil(float(set_size_range[1])/max_set_new_size_train))]:
                     for new_sets_number_test in [int(np.ceil(float(set_size_range[1]) / max_set_new_size_test))]:
                         id += 1
-                        new_args.id = id
                         new_args = deepcopy(train.args)
+                        new_args.id = id
                         new_args.max_set_new_size_train = max_set_new_size_train
                         new_args.new_sets_number_train = new_sets_number_train
                         new_args.max_set_new_size_test = max_set_new_size_test
