@@ -13,8 +13,8 @@ train.args.data_set = 'mnist'
 
 nproc = cpu_count()
 
-if not os.path.exists('results'):
-    os.mkdir('results')
+if not path.exists('results'):
+    mkdir('results')
 
 with open(train.args.result_file, 'w') as fp:
     writer = csv.DictWriter(fp, train.results.keys())
