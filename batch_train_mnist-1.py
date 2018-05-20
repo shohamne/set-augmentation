@@ -33,8 +33,8 @@ for seed in range(100,105):
                         new_args.seed = seed
                         tasks.append(new_args)
 
-pool = Pool(cpu_count())
-#pool = Pool(1)
+#pool = Pool(cpu_count())
+pool = Pool(1)
 
 result = pool.map(train.main, tasks)
 result_df = pd.DataFrame(result)
