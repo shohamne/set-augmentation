@@ -257,8 +257,8 @@ def main(args):
         t2 = time.time()
 
     results['time'] = t2 - t0
-    results['train_loss'] = np.mean(test_losses[-10:])
-    results['train_accuracy'] = np.mean(test_accuracies[-10:])
+    results['train_loss'] = np.mean(train_losses[-10:])
+    results['train_accuracy'] = np.mean(train_accuracies[-10:])
     results['test_accuracy'] = np.mean(test_accuracies[-10:])
 
     print ('Final Test Accuracy: {:.2f}'.format(results['test_accuracy']) )
