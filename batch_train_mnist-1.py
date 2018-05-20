@@ -11,9 +11,11 @@ train.args.epochs = 500
 train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
 
+nproc = cpu_count()
+
 if not os.path.exists('results'):
     os.mkdir('results')
-    
+
 with open(train.args.result_file, 'w') as fp:
     writer = csv.DictWriter(fp, train.results.keys())
     writer.writeheader()
@@ -34,13 +36,17 @@ for seed in range(100,105):
                         new_args.seed = seed
                         tasks.append(new_args)
 
-pool = Pool(cpu_count())
-#pool = Pool(1)
+if nproc > 1:
+    pool = Pool(cpu_count())
+    #pool = Pool(1)
 
-result = pool.map(train.main, tasks)
+    result = pool.map(train.main, tasks)
+
+    pool.close()
+    pool.join()
+else:
+    result = [train.main(args) for args in tasks]
+
 result_df = pd.DataFrame(result)
-pool.close()
-pool.join()
-
 result_df.to_csv('{}.csv'.format(train.args.result_file))
 
