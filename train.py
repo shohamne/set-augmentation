@@ -1,4 +1,5 @@
 from __future__ import print_function
+import time
 import argparse
 import csv
 import numpy as np
@@ -209,7 +210,7 @@ def main(args):
 
         print('\t\tGroup Test: Accuracy: {}/{} ({:.0f}%)'.format(
             group_correct, len(group_target),
-            100. * accuracy))
+            100. * accuracy), end="")
 
         return accuracy
 
@@ -230,11 +231,15 @@ def main(args):
 
     lr = args.lr
     test_accuracies = []
+    t0 = t2 = time.time()
     for epoch in range(1, args.epochs + 1):
         train(epoch, optimizer, lr)
         lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
         test_accuracy = test()
         test_accuracies.append(test_accuracy)
+        t1 = time.time()
+        print('Time: {}\tEpoch Time: {}'.format(t1-t0,t1-t2))
+        t2 = time.time()
 
     results['test_accuracy'] = np.mean(test_accuracies[-10:])
 
