@@ -6,14 +6,15 @@ import pandas as pd
 from copy import deepcopy
 from multiprocessing import Pool, cpu_count
 
-train.args.no_cuda = True
+train.args.no_cuda = False
 train.args.batch_size = 512
-train.args.epochs = 500
+train.args.epochs = 100
 train.args.result_file = path.join('results','{}.csv'.format(path.basename(__file__)))
 train.args.data_set = 'mnist'
+train.args.lr = 0.1
 
-nproc = cpu_count()
-#nproc = 1
+#nproc = cpu_count()
+nproc = 1
 
 if not path.exists('results'):
     mkdir('results')
