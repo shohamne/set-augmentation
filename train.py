@@ -61,7 +61,11 @@ parser.add_argument('--data-set', choices=['rotations','mnist'], type=str, defau
 args = parser.parse_args()
 
 results =  args.__dict__
+results['train_loss'] = None
+results['train_accuracy'] = None
 results['test_accuracy'] = None
+results['time'] = None
+
 
 
 def main(args):
