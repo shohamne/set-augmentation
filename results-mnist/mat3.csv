@@ -1,0 +1,7 @@
+,train_accuracy,train_accuracy,train_accuracy,train_accuracy,test_accuracy,test_accuracy,test_accuracy,test_accuracy
+max_set_new_size_test__new_sets_number_test,"10,10","100,1","100,10","1000,1","10,10","100,1","100,10","1000,1"
+max_set_new_size_train__new_sets_number_train,,,,,,,,
+"10,10",0.6123604,0.6123604,,,0.711169,0.721505,,
+"100,1",0.8129113,0.8129113,,,0.739262,0.789908,,
+"100,10",,,0.9325776,0.9325776,,,0.943921,0.942531
+"1000,1",,,0.9213518,0.9213518,,,0.894858,0.896671
