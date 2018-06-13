@@ -9,13 +9,7 @@ from multiprocessing import Pool, cpu_count
 train.args.no_cuda = True
 train.args.epochs = 500
 train.args.result_file = path.join('/tmp',path.basename(__file__))
-
-train.args.labels_number = 2
-train.args.train_set_size = 2
-train.args.test_set_size = 100
-train.args.set_size_range_train = [10000,10000]
-train.args.set_size_range_test = [100,100]
-
+train.args.la
 
 with open(train.args.result_file, 'w') as fp:
     writer = csv.DictWriter(fp, train.results.keys())
@@ -25,10 +19,10 @@ with open(train.args.result_file, 'w') as fp:
 
 tasks = []
 for seed in range(100,105):
-    for max_set_new_size_train in [100, 10000]:
-        for max_set_new_size_test in [100]:
-            for new_sets_number_train in [int(np.ceil(10000.0/max_set_new_size_train))]:
-                for new_sets_number_test in [int(np.ceil(10000.0 / max_set_new_size_test))]:
+    for max_set_new_size_train in [10, 100]:
+        for max_set_new_size_test in [10, 100]:
+            for new_sets_number_train in [int(np.ceil(100.0/max_set_new_size_train))]:
+                for new_sets_number_test in [int(np.ceil(100.0 / max_set_new_size_test))]:
                     new_args = deepcopy(train.args)
                     new_args.max_set_new_size_train = max_set_new_size_train
                     new_args.new_sets_number_train = new_sets_number_train

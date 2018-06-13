@@ -39,10 +39,12 @@ parser.add_argument('--train-set-size', type=int, default=60, metavar='N',
                     help='how many sampels in the train set')
 parser.add_argument('--test-set-size', type=int, default=1000, metavar='N',
                     help='how many sampels in the test set')
-parser.add_argument('--labels-number', type=int, default=4, metavar='N',
+parser.add_argument('--labels-number', type=int, default=2, metavar='N',
                     help='how many sampels in the test set')
-parser.add_argument('--set-size-range', type=int, nargs=2, default=(10,100), metavar=('min','max'),
-                    help='how many sampels in the test set')
+parser.add_argument('--set-size-range-train', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
+                    help='how many sampels in the train sets')
+er.add_argument('--set-size-range-test', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
+                    help='how many sampels in the train sets')
 parser.add_argument('--max-set-new-size-train', type=int, default=100, metavar='N',
                     help='maximum number of sampels in the train set after subsample')
 parser.add_argument('--new-sets-number-train', type=int, default=1, metavar='N',
@@ -67,6 +69,10 @@ results['test_accuracy'] = None
 results['time'] = None
 
 
+def length(x):
+    used = torch.sign(torch.max(torch.abs(x), x.dim() - 1)[0])
+    length = torch.sum(used,  used.dim() - 1, keepdim=True)
+    return length
 
 def main(args):
     print ('Arguments: {}'.format(args.__dict__) )
@@ -85,25 +91,21 @@ def main(args):
 
 
     if args.data_set == 'rotations':
-        orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number, set_size_range=args.set_size_range)
-        orig_test_set = RotationsSetsDataset(args.test_set_size, args.labels_number, set_size_range=args.set_size_range)
+        orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number, set_size_range=args.set_size_range_train)
+        orig_test_set = RotationsSetsDataset(args.test_set_size, args.labels_number, set_size_range=args.set_size_range_test)
         labels_number = args.labels_number
     if args.data_set == 'mnist':
-        orig_train_set = MnistSetsDataset(train=True, set_size_range=args.set_size_range)
-        orig_test_set = MnistSetsDataset(train=False, set_size_range=args.set_size_range)
+        orig_train_set = MnistSetsDataset(train=True, set_size_range=args.set_size_range_train)
+        orig_test_set = MnistSetsDataset(train=False, set_size_range=args.set_size_range_test)
         labels_number = 10
+
+    orig_test_set_sizes = np.array([np.float64(length(torch.Tensor(s))) for s,_ in orig_test_set])
 
     train_set = SubsampleDataset(orig_train_set, args.max_set_new_size_train, args.new_sets_number_train, args.random_sample)
     test_set = SubsampleDataset(orig_test_set, args.max_set_new_size_test, args.new_sets_number_test, args.random_sample)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.test_batch_size, shuffle=False, **kwargs)
-
-    def length(x):
-        used = torch.sign(torch.max(torch.abs(x), x.dim()-1)[0])
-        length = torch.sum(used, 1, keepdim=True)
-        return length
-
 
     def exp_lr_scheduler(epoch, init_lr, lr_decay_epoch):
         """Decay learning rate by a factor of 0.1 every lr_decay_epoch epochs."""
@@ -219,12 +221,16 @@ def main(args):
         group_score = score_df.groupby(by='orig_ind')[range(score.shape[1])].sum()
         group_target = score_df.groupby(by='orig_ind')['target'].unique()
         group_pred = group_score.idxmax(axis=1)  # get the index of the max log-probability
-        group_correct = (group_target==group_pred).sum()
-        accuracy = float(group_correct) / len(group_target)
+        group_correct = group_target==group_pred
+        n_group_correct = float(group_correct.sum())
+        accuracy = n_group_correct/len(group_target)
 
         print('\tGroup Test: Accuracy: {}/{} ({:.0f}%)'.format(
-            group_correct, len(group_target),
+            n_group_correct, len(group_target),
             100. * accuracy), end="")
+
+        import pylab as plt
+        plt.scatter(orig_test_set_sizes, group_correct); plt.show()
 
         return accuracy
 

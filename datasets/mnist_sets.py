@@ -53,14 +53,16 @@ class MnistSetsDataset(Dataset):
         root = './data'
         if not os.path.exists(root):
             os.mkdir(root)
-        self.mnist_dataset = MNIST(root=root, train=train, transform=trans, download=True)
+        mnist_dataset = MNIST(root=root, train=train, transform=trans, download=True)
+
+        self._dataset = [(data, target) for data, target in mnist_dataset]
 
 
     def __getitem__(self, item):
-        return self.mnist_dataset[item]
+        return self._dataset[item]
 
     def __len__(self):
-        return len(self.mnist_dataset)
+        return len(self._dataset)
 
 if __name__ == '__main__':
     import pylab as plt
