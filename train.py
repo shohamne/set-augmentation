@@ -1,4 +1,5 @@
 from __future__ import print_function
+from copy import deepcopy
 import time
 import argparse
 import csv
@@ -33,6 +34,8 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=2, metavar='S',
                     help='random seed (default: 1)')
+parser.add_argument('--results-averaging-window', type=int, default=10, metavar='N',
+                    help='how many results at the end to take for averaging')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--train-set-size', type=int, default=60, metavar='N',
@@ -43,7 +46,7 @@ parser.add_argument('--labels-number', type=int, default=2, metavar='N',
                     help='how many sampels in the test set')
 parser.add_argument('--set-size-range-train', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
                     help='how many sampels in the train sets')
-er.add_argument('--set-size-range-test', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
+parser.add_argument('--set-size-range-test', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
                     help='how many sampels in the train sets')
 parser.add_argument('--max-set-new-size-train', type=int, default=100, metavar='N',
                     help='maximum number of sampels in the train set after subsample')
@@ -54,7 +57,7 @@ parser.add_argument('--max-set-new-size-test', type=int, default=100, metavar='N
 parser.add_argument('--new-sets-number-test', type=int, default=1, metavar='N',
                     help='number of new subsampled sets from each original set')
 parser.add_argument('--random-sample', action='store_true', default=False,
-                    help='id set random sampling of the sets is used')
+                    help='task_id set random sampling of the sets is used')
 parser.add_argument('--result-file', type=str, default='/tmp/augmentation_result.csv', metavar='S',
                     help='file name for result')
 parser.add_argument('--data-set', choices=['rotations','mnist'], type=str, default='mnist', metavar='S',
@@ -69,10 +72,16 @@ results['test_accuracy'] = None
 results['time'] = None
 
 
+
 def length(x):
     used = torch.sign(torch.max(torch.abs(x), x.dim() - 1)[0])
     length = torch.sum(used,  used.dim() - 1, keepdim=True)
     return length
+
+def write_csv_header():
+    with open(args.result_file, 'w') as fp:
+        writer = csv.DictWriter(fp, sorted(results.keys()))
+        writer.writeheader()
 
 def main(args):
     print ('Arguments: {}'.format(args.__dict__) )
@@ -267,17 +276,17 @@ def main(args):
         t2 = time.time()
 
     results['time'] = t2 - t0
-    results['train_loss'] = np.mean(train_losses[-10:])
-    results['train_accuracy'] = np.mean(train_accuracies[-10:])
-    results['test_accuracy'] = np.mean(test_accuracies[-10:])
+    results['train_loss'] = np.mean(train_losses[-args.results_averaging_window:])
+    results['train_accuracy'] = np.mean(train_accuracies[-args.results_averaging_window:])
+    results['test_accuracy'] = np.mean(test_accuracies[-args.results_averaging_window:])
 
     print ('Final Test Accuracy: {:.2f}'.format(results['test_accuracy']) )
 
     with open(args.result_file, 'a') as fp:
-        writer = csv.DictWriter(fp, results.keys())
+        writer = csv.DictWriter(fp, sorted(results.keys()))
         writer.writerow(results)
 
-    return results
+    return deepcopy(results)
 
 
 
