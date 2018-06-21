@@ -238,8 +238,8 @@ def main(args):
             n_group_correct, len(group_target),
             100. * accuracy), end="")
 
-        import pylab as plt
-        plt.scatter(orig_test_set_sizes, group_correct); plt.show()
+        #import pylab as plt
+        #plt.scatter(orig_test_set_sizes, group_correct); plt.show()
 
         return accuracy
 
