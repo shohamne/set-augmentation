@@ -8,7 +8,7 @@ from multiprocessing import Pool, cpu_count
 
 
 S = 1024
-SET_NEW_SIZES = 2 ^ np.arange(0, np.log2(S))
+SET_NEW_SIZES = np.int32(np.exp2(np.arange(0, np.log2(S))))
 
 train.args.no_cuda = True
 train.args.epochs = 10
