@@ -8,7 +8,7 @@ from multiprocessing import Pool, cpu_count
 
 
 S = 1024
-SET_NEW_SIZES = np.int32(np.exp2(np.arange(0, np.log2(S))))
+SET_NEW_SIZES = np.int32(np.exp2(np.arange(0, np.log2(S)+1)))
 
 train.args.no_cuda = True
 train.args.epochs = 10
@@ -19,8 +19,8 @@ train.args.labels_number = 2
 train.args.test_set_size = 100
 train.args.set_size_range_train = [S,S]
 
-#nproc = cpu_count()
-nproc = 1
+nproc = cpu_count()
+#nproc = 1
 
 if not path.exists('results'):
     mkdir('results')
@@ -31,10 +31,10 @@ tasks = []
 
 task_id = 0
 for seed in range(1,10):
-    for train_set_size in [10, 100, 1000]:
+    for train_set_size in [10, 100]:
         for max_set_new_size_train in SET_NEW_SIZES:
             for max_set_new_size_test in SET_NEW_SIZES:
-                set_size_range_test = [max_set_new_size_test, max_set_new_size_test]
+                set_size_range_test = [S, S]
                 new_sets_number_train = int(np.ceil(float(S)/max_set_new_size_train))
                 new_sets_number_test = int(np.ceil(set_size_range_test[0]/max_set_new_size_test))
 

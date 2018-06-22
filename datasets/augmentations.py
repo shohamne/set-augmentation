@@ -4,6 +4,9 @@ from torch.utils.data import Dataset
 def _remove_set_zeros(s):
     return s[np.abs(s).sum(axis=1) > 0,:]
 
+def _randperm(size, n_rand_perms):
+    randperm = np.concatenate([np.random.permutation(size) for i in range(n_rand_perms)])
+    return randperm
 
 def set_subsample(s, max_set_new_size, new_sets_number):
     orig_set = _remove_set_zeros(s)
@@ -11,7 +14,7 @@ def set_subsample(s, max_set_new_size, new_sets_number):
     n_new_sets = new_sets_number if new_sets_number > 0 \
         else int(np.ceil(float(orig_set_size) / max_set_new_size))
     n_rand_perms = int(np.ceil(float(n_new_sets)*max_set_new_size/orig_set_size))
-    randperm = np.concatenate([np.random.permutation(orig_set_size) for i in range(n_rand_perms)])
+    randperm = _randperm(orig_set_size, n_rand_perms)
     new_sets = []
     for i in range(0, n_new_sets*max_set_new_size, max_set_new_size):
         new_set = orig_set[randperm[i:i+max_set_new_size]]
