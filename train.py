@@ -1,7 +1,6 @@
 from __future__ import print_function
 from copy import deepcopy
 
-import os
 import time
 import argparse
 import csv
@@ -194,7 +193,7 @@ def main(args):
             output = model(data)
             loss = F.nll_loss(output,target)
             correct = output.topk(1)[1].reshape(target.shape) == target
-            accuracy = np.mean(np.float32(correct))
+            accuracy = np.mean(np.float32(correct.cpu()))
             loss.backward()
             optimizer.step()
             # if batch_idx % args.log_interval == 0:
