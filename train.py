@@ -80,7 +80,6 @@ results['test_accuracy'] = None
 results['time'] = None
 
 
-
 def length(x):
     used = torch.sign(torch.max(torch.abs(x), x.dim() - 1)[0])
     length = torch.sum(used,  used.dim() - 1, keepdim=True)
@@ -92,22 +91,25 @@ def write_csv_header():
         writer = csv.DictWriter(fp, sorted(results.keys()))
         writer.writeheader()
 
+
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
 
 def main(args):
     print ('Arguments: {}'.format(args.__dict__) )
 
     logging.basicConfig(
         level=logging.INFO,
-        format="%(message)s",
-        filename="{}/{}.log".format('logs', args.id)
     )
     logger = logging.getLogger()
     console = logging.StreamHandler()
     console.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
     logger.addHandler(console)
+    file_handler = logging.FileHandler("{}/{}.log".format('logs', args.id))
+    file_handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(file_handler)
 
     for k in args.__dict__.keys():
         results[k]=args.__dict__[k]
