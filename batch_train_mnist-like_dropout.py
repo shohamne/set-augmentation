@@ -34,7 +34,8 @@ for seed in range(103,105):
     for set_size in [500]:
         for dropout in [0.05, 0.1, 0.5, 1.0]:
             max_sets_number_train = np.floor(1/dropout)
-            for new_sets_number_train in np.unique([1, np.ceil(max_sets_number_train/2), max_sets_number_train]):
+            for new_sets_number_train in \
+                    np.unique([1, int(np.ceil(max_sets_number_train/2)), int(max_sets_number_train)]):
                 task_id += 1
                 new_args = deepcopy(train.args)
                 new_args.id = task_id
