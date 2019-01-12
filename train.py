@@ -224,7 +224,7 @@ def main(args):
                 test_loss += F.nll_loss(output, target, size_average=False).item() # sum up batch loss
                 pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
-                out.append(np.array(output))
+                out.append(np.array(output.cpu()))
 
             print('\tTest set: Loss: {:.6f}, Accuracy: {}/{} ({:.0f}%)'.format(
                 test_loss/len(test_loader.dataset), correct, len(test_loader.dataset),
