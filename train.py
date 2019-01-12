@@ -1,5 +1,7 @@
 from __future__ import print_function
 from copy import deepcopy
+
+import os
 import time
 import argparse
 import csv
@@ -9,10 +11,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from pytorchtools import EarlyStopping
+
 
 from datasets.rotations_sets import RotationsSetsDataset
 from datasets.mnist_sets import MnistSetsDataset
 from datasets.augmentations import SubsampleDataset
+
+from cStringIO import StringIO
+import logging
 
 # Training settings
 parser = argparse.ArgumentParser(description='set augmentations test')
@@ -24,10 +31,12 @@ parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 10)')
-parser.add_argument('--lr-decay-epoch', type=int, default=20, metavar='N',
-                    help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-1, metavar='LR',
-                    help='learning rate (default: 0.000001)')
+                    help='learning rate (default: 0.1)')
+parser.add_argument('--reduce-on-plateau-patience', type=int, default=5, metavar='N',
+                    help='number of epochs to train (default: 10)')
+parser.add_argument('--early-stopping-patience', type=int, default=10, metavar='N',
+                    help='number of epochs to train (default: 10)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
@@ -78,13 +87,28 @@ def length(x):
     length = torch.sum(used,  used.dim() - 1, keepdim=True)
     return length
 
+
 def write_csv_header():
     with open(args.result_file, 'w') as fp:
         writer = csv.DictWriter(fp, sorted(results.keys()))
         writer.writeheader()
 
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
 def main(args):
     print ('Arguments: {}'.format(args.__dict__) )
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        filename="{}/{}.log".format('logs', args.id)
+    )
+    logger = logging.getLogger()
+    console = logging.StreamHandler()
+    console.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    logger.addHandler(console)
 
     for k in args.__dict__.keys():
         results[k]=args.__dict__[k]
@@ -97,7 +121,6 @@ def main(args):
     device = torch.device("cuda" if use_cuda else "cpu")
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-
 
     if args.data_set == 'rotations':
         orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number, set_size_range=args.set_size_range_train)
@@ -115,18 +138,6 @@ def main(args):
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.test_batch_size, shuffle=False, **kwargs)
-
-    def exp_lr_scheduler(epoch, init_lr, lr_decay_epoch):
-        """Decay learning rate by a factor of 0.1 every lr_decay_epoch epochs."""
-        lr = init_lr * (0.5 ** (epoch // lr_decay_epoch))
-        return lr
-
-
-    def set_lr(optimizer, lr):
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-        return optimizer
-
 
     class Net(nn.Module):
         def __init__(self):
@@ -167,9 +178,11 @@ def main(args):
     model = Net().to(device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=args.reduce_on_plateau_patience,
+                                                     verbose=True)
+    early_stopping = EarlyStopping(verbose=True, patience=args.early_stopping_patience)
 
-    def train(epoch, optimizer, lr):
-        set_lr(optimizer, lr)
+    def train(epoch, optimizer):
         model.train()
         losses = []
         accuracies = []
@@ -195,12 +208,10 @@ def main(args):
         mean_accuracy = np.mean(accuracies)
 
         print('Train Epoch: {}\tLoss: {:.6f}\tAccuracy: {:.2f}\tLR: {}'.format(
-            epoch, np.mean(mean_losses), np.mean(mean_accuracy), lr),
-            end="")
+            epoch, np.mean(mean_losses), np.mean(mean_accuracy), get_lr(optimizer)),
+            end="", file=log_sstream)
 
         return mean_losses, mean_accuracy
-
-
 
     def test():
         model.eval()
@@ -216,10 +227,10 @@ def main(args):
                 correct += pred.eq(target.view_as(pred)).sum().item()
                 out.append(np.array(output))
 
-            print('\tTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
-                test_loss, correct, len(test_loader.dataset),
+            print('\tTest set: Loss: {:.6f}, Accuracy: {}/{} ({:.0f}%)'.format(
+                test_loss/len(test_loader.dataset), correct, len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset)),
-                end="")
+                end="", file=log_sstream)
 
         out = np.concatenate(out)
         score = out * (out == out.max(axis=1, keepdims=True))
@@ -236,7 +247,7 @@ def main(args):
 
         print('\tGroup Test: Accuracy: {}/{} ({:.0f}%)'.format(
             n_group_correct, len(group_target),
-            100. * accuracy), end="")
+            100. * accuracy), end="", file=log_sstream)
 
         #import pylab as plt
         #plt.scatter(orig_test_set_sizes, group_correct); plt.show()
@@ -264,16 +275,24 @@ def main(args):
     train_accuracies = []
     t0 = t2 = time.time()
     for epoch in range(1, args.epochs + 1):
-        print('ID: {}\t'.format(args.id), end="")
-        train_loss, train_accuracy = train(epoch, optimizer, lr)
+        log_sstream = StringIO()
+        print('ID: {}\t'.format(args.id), end="", file=log_sstream)
+        train_loss, train_accuracy = train(epoch, optimizer)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
-        lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
+        #lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
+
         test_accuracy = test()
+        scheduler.step(test_accuracy)
         test_accuracies.append(test_accuracy)
         t1 = time.time()
-        print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1-t0,t1-t2))
+        print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1-t0,t1-t2), file=log_sstream)
+        logger.info(log_sstream.getvalue())
         t2 = time.time()
+        early_stopping(-test_accuracy)
+        if early_stopping.early_stop:
+            print("Early stopping")
+            break
 
     results['time'] = t2 - t0
     results['train_loss'] = np.mean(train_losses[-args.results_averaging_window:])
