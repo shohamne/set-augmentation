@@ -198,7 +198,7 @@ def main(args):
     model = Net().to(device)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', patience=args.reduce_on_plateau_patience,
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=args.reduce_on_plateau_patience,
                                                      verbose=True)
     early_stopping = EarlyStopping(verbose=True, patience=args.early_stopping_patience)
 
@@ -302,7 +302,7 @@ def main(args):
         # lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
 
         test_accuracy = test()
-        scheduler.step(test_accuracy)
+        scheduler.step(train_loss)
         test_accuracies.append(test_accuracy)
         t1 = time.time()
         print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1 - t0, t1 - t2), file=log_sstream)
