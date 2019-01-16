@@ -71,6 +71,8 @@ parser.add_argument('--result-file', type=str, default='/tmp/augmentation_result
                     help='file name for result')
 parser.add_argument('--data-set', choices=['rotations', 'mnist'], type=str, default='mnist', metavar='S',
                     help='choose data set from [mnist,rotations]')
+parser.add_argument('--network-with-factor', type=int, default=1, metavar='N',
+                    help='factor for the network with')
 
 args = parser.parse_args()
 
@@ -162,21 +164,22 @@ def main(args):
 
     class Net(nn.Module):
         def __init__(self):
+            w = args.network_with_factor
             super(Net, self).__init__()
-            self.fc1 = nn.Linear(2, 100)  # , bias=False)
+            self.fc1 = nn.Linear(2, 100*w)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc1.weight)
-            self.fc2 = nn.Linear(100, 50)  # , bias=False)
+            self.fc2 = nn.Linear(100*w, 50*w)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc2.weight)
-            self.fc3 = nn.Linear(50, 50)  # , bias=False)
+            self.fc3 = nn.Linear(50*w, 50*w)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc3.weight)
 
-            self.fc4 = nn.Linear(50, 50)
+            self.fc4 = nn.Linear(50*w, 50*w)
             torch.nn.init.xavier_uniform(self.fc4.weight)
-            self.fc4_bn = nn.BatchNorm1d(50)
-            self.fc5 = nn.Linear(50, 50)
+            self.fc4_bn = nn.BatchNorm1d(50*w)
+            self.fc5 = nn.Linear(50*w, 50*w)
             torch.nn.init.xavier_uniform(self.fc5.weight)
-            self.fc5_bn = nn.BatchNorm1d(50)
-            self.fc6 = nn.Linear(50, labels_number)
+            self.fc5_bn = nn.BatchNorm1d(50*w)
+            self.fc6 = nn.Linear(50*w, labels_number)
             torch.nn.init.xavier_normal(self.fc6.weight)
 
         def forward(self, x):
