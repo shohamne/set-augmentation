@@ -12,7 +12,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 from pytorchtools import EarlyStopping
 
-
 from datasets.rotations_sets import RotationsSetsDataset
 from datasets.mnist_sets import MnistSetsDataset
 from datasets.augmentations import SubsampleDataset
@@ -38,6 +37,8 @@ parser.add_argument('--early-stopping-patience', type=int, default=10, metavar='
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
+parser.add_argument('--dropout_ratio', type=float, default=1.0, metavar='M',
+                    help='dropout_ratio (default: 1.0)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
 parser.add_argument('--seed', type=int, default=2, metavar='S',
@@ -52,9 +53,9 @@ parser.add_argument('--test-set-size', type=int, default=1000, metavar='N',
                     help='how many sampels in the test set')
 parser.add_argument('--labels-number', type=int, default=2, metavar='N',
                     help='how many sampels in the test set')
-parser.add_argument('--set-size-range-train', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
+parser.add_argument('--set-size-range-train', type=int, nargs=2, default=(100, 1000), metavar=('min', 'max'),
                     help='how many sampels in the train sets')
-parser.add_argument('--set-size-range-test', type=int, nargs=2, default=(100,1000), metavar=('min','max'),
+parser.add_argument('--set-size-range-test', type=int, nargs=2, default=(100, 1000), metavar=('min', 'max'),
                     help='how many sampels in the train sets')
 parser.add_argument('--max-set-new-size-train', type=int, default=100, metavar='N',
                     help='maximum number of sampels in the train set after subsample')
@@ -68,12 +69,12 @@ parser.add_argument('--random-sample', action='store_true', default=False,
                     help='task_id set random sampling of the sets is used')
 parser.add_argument('--result-file', type=str, default='/tmp/augmentation_result.csv', metavar='S',
                     help='file name for result')
-parser.add_argument('--data-set', choices=['rotations','mnist'], type=str, default='mnist', metavar='S',
+parser.add_argument('--data-set', choices=['rotations', 'mnist'], type=str, default='mnist', metavar='S',
                     help='choose data set from [mnist,rotations]')
 
 args = parser.parse_args()
 
-results =  args.__dict__
+results = args.__dict__
 results['train_loss'] = None
 results['train_accuracy'] = None
 results['test_accuracy'] = None
@@ -82,7 +83,7 @@ results['time'] = None
 
 def length(x):
     used = torch.sign(torch.max(torch.abs(x), x.dim() - 1)[0])
-    length = torch.sum(used,  used.dim() - 1, keepdim=True)
+    length = torch.sum(used, used.dim() - 1, keepdim=True)
     return length
 
 
@@ -97,8 +98,23 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
+def dropout(data, dropout_ratio):
+    assert (0 < dropout_ratio <= 1)
+    if dropout_ratio < 1:
+        nsamples_orig = data.shape[1]
+        nsamples_out = int(nsamples_orig * dropout_ratio)
+
+        inds = np.random.permutation(nsamples_orig)[:nsamples_out]
+
+        data_out = data[:, inds, :]
+
+        return data_out
+    else:
+        return data
+
+
 def main(args):
-    print ('Arguments: {}'.format(args.__dict__) )
+    print('Arguments: {}'.format(args.__dict__))
 
     logging.basicConfig(
         level=logging.INFO,
@@ -112,7 +128,7 @@ def main(args):
     logger.addHandler(file_handler)
 
     for k in args.__dict__.keys():
-        results[k]=args.__dict__[k]
+        results[k] = args.__dict__[k]
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -124,18 +140,22 @@ def main(args):
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
 
     if args.data_set == 'rotations':
-        orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number, set_size_range=args.set_size_range_train)
-        orig_test_set = RotationsSetsDataset(args.test_set_size, args.labels_number, set_size_range=args.set_size_range_test)
+        orig_train_set = RotationsSetsDataset(args.train_set_size, args.labels_number,
+                                              set_size_range=args.set_size_range_train)
+        orig_test_set = RotationsSetsDataset(args.test_set_size, args.labels_number,
+                                             set_size_range=args.set_size_range_test)
         labels_number = args.labels_number
     if args.data_set == 'mnist':
         orig_train_set = MnistSetsDataset(train=True, set_size_range=args.set_size_range_train)
         orig_test_set = MnistSetsDataset(train=False, set_size_range=args.set_size_range_test)
         labels_number = 10
 
-    orig_test_set_sizes = np.array([np.float64(length(torch.Tensor(s))) for s,_ in orig_test_set])
+    orig_test_set_sizes = np.array([np.float64(length(torch.Tensor(s))) for s, _ in orig_test_set])
 
-    train_set = SubsampleDataset(orig_train_set, args.max_set_new_size_train, args.new_sets_number_train, args.random_sample)
-    test_set = SubsampleDataset(orig_test_set, args.max_set_new_size_test, args.new_sets_number_test, args.random_sample)
+    train_set = SubsampleDataset(orig_train_set, args.max_set_new_size_train, args.new_sets_number_train,
+                                 args.random_sample)
+    test_set = SubsampleDataset(orig_test_set, args.max_set_new_size_test, args.new_sets_number_test,
+                                args.random_sample)
 
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=args.test_batch_size, shuffle=False, **kwargs)
@@ -143,11 +163,11 @@ def main(args):
     class Net(nn.Module):
         def __init__(self):
             super(Net, self).__init__()
-            self.fc1 = nn.Linear(2, 100)#, bias=False)
+            self.fc1 = nn.Linear(2, 100)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc1.weight)
-            self.fc2 = nn.Linear(100, 50)#, bias=False)
+            self.fc2 = nn.Linear(100, 50)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc2.weight)
-            self.fc3 = nn.Linear(50, 50)#, bias=False)
+            self.fc3 = nn.Linear(50, 50)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc3.weight)
 
             self.fc4 = nn.Linear(50, 50)
@@ -159,20 +179,19 @@ def main(args):
             self.fc6 = nn.Linear(50, labels_number)
             torch.nn.init.xavier_normal(self.fc6.weight)
 
-
         def forward(self, x):
-            x = F.dropout(F.relu((self.fc1(x))), training=False)# #self.training)
-            x = F.dropout(F.relu((self.fc2(x))), training=False)# #self.training)
-            x = F.dropout(F.relu((self.fc3(x))), training=False)# #self.training)
+            x = F.dropout(F.relu((self.fc1(x))), training=False)  # #self.training)
+            x = F.dropout(F.relu((self.fc2(x))), training=False)  # #self.training)
+            x = F.dropout(F.relu((self.fc3(x))), training=False)  # #self.training)
 
-            x = torch.div(torch.sum(x, dim=1),length(x))
-            #x = torch.sum(x, dim=1)
+            x = torch.div(torch.sum(x, dim=1), length(x))
+            # x = torch.sum(x, dim=1)
 
-            x = F.dropout(F.relu((self.fc4_bn(self.fc4(x)))), training=False)#self.training))False)#
-            x = F.dropout(F.relu((self.fc5_bn(self.fc5(x)))), training=False)#self.training)
+            x = F.dropout(F.relu((self.fc4_bn(self.fc4(x)))), training=False)  # self.training))False)#
+            x = F.dropout(F.relu((self.fc5_bn(self.fc5(x)))), training=False)  # self.training)
             x = self.fc6(x)
 
-            y = F.softmax(x,1)
+            y = F.softmax(x, 1)
 
             return y
 
@@ -188,12 +207,13 @@ def main(args):
         losses = []
         accuracies = []
         for batch_idx, (data, target) in enumerate(train_loader):
+            data = dropout(data, args.dropout_ratio)
             data, target = data.to(device), target.to(device)
             if data.shape[0] <= 1:
                 continue
             optimizer.zero_grad()
             output = model(data)
-            loss = F.nll_loss(output,target)
+            loss = F.nll_loss(output, target)
             correct = output.topk(1)[1].reshape(target.shape) == target
             accuracy = np.mean(np.float32(correct.cpu()))
             loss.backward()
@@ -205,7 +225,7 @@ def main(args):
             losses.append(loss.item())
             accuracies.append(accuracy)
 
-        mean_losses =  np.mean(losses)
+        mean_losses = np.mean(losses)
         mean_accuracy = np.mean(accuracies)
 
         print('Train Epoch: {}\tLoss: {:.6f}\tAccuracy: {:.2f}\tLR: {}'.format(
@@ -223,13 +243,13 @@ def main(args):
             for data, target in test_loader:
                 data, target = data.to(device), target.to(device)
                 output = model(data)
-                test_loss += F.nll_loss(output, target, size_average=False).item() # sum up batch loss
-                pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
+                test_loss += F.nll_loss(output, target, size_average=False).item()  # sum up batch loss
+                pred = output.max(1, keepdim=True)[1]  # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
                 out.append(np.array(output.cpu()))
 
             print('\tTest set: Loss: {:.6f}, Accuracy: {}/{} ({:.0f}%)'.format(
-                test_loss/len(test_loader.dataset), correct, len(test_loader.dataset),
+                test_loss / len(test_loader.dataset), correct, len(test_loader.dataset),
                 100. * correct / len(test_loader.dataset)),
                 end="", file=log_sstream)
 
@@ -237,25 +257,23 @@ def main(args):
         score = out * (out == out.max(axis=1, keepdims=True))
         score_df = pd.concat([
             pd.DataFrame({'orig_ind': test_set.orig_inds, 'target': test_set.target}),
-            pd.DataFrame(score)],axis=1)
+            pd.DataFrame(score)], axis=1)
 
         group_score = score_df.groupby(by='orig_ind')[range(score.shape[1])].sum()
         group_target = score_df.groupby(by='orig_ind')['target'].unique()
         group_pred = group_score.idxmax(axis=1)  # get the index of the max log-probability
-        group_correct = group_target==group_pred
+        group_correct = group_target == group_pred
         n_group_correct = float(group_correct.sum())
-        accuracy = n_group_correct/len(group_target)
+        accuracy = n_group_correct / len(group_target)
 
         print('\tGroup Test: Accuracy: {}/{} ({:.0f}%)'.format(
             n_group_correct, len(group_target),
             100. * accuracy), end="", file=log_sstream)
 
-        #import pylab as plt
-        #plt.scatter(orig_test_set_sizes, group_correct); plt.show()
+        # import pylab as plt
+        # plt.scatter(orig_test_set_sizes, group_correct); plt.show()
 
         return accuracy
-
-
 
     # import numpy as np
     # import pylab as plt
@@ -281,13 +299,13 @@ def main(args):
         train_loss, train_accuracy = train(epoch, optimizer)
         train_losses.append(train_loss)
         train_accuracies.append(train_accuracy)
-        #lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
+        # lr = exp_lr_scheduler(epoch, init_lr=args.lr, lr_decay_epoch=args.lr_decay_epoch)
 
         test_accuracy = test()
         scheduler.step(test_accuracy)
         test_accuracies.append(test_accuracy)
         t1 = time.time()
-        print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1-t0,t1-t2), file=log_sstream)
+        print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1 - t0, t1 - t2), file=log_sstream)
         logger.info(log_sstream.getvalue())
         t2 = time.time()
         early_stopping(-test_accuracy)
@@ -300,14 +318,13 @@ def main(args):
     results['train_accuracy'] = np.mean(train_accuracies[-args.results_averaging_window:])
     results['test_accuracy'] = np.mean(test_accuracies[-args.results_averaging_window:])
 
-    print ('Final Test Accuracy: {:.2f}'.format(results['test_accuracy']) )
+    print('Final Test Accuracy: {:.2f}'.format(results['test_accuracy']))
 
     with open(args.result_file, 'a') as fp:
         writer = csv.DictWriter(fp, sorted(results.keys()))
         writer.writerow(results)
 
     return deepcopy(results)
-
 
 
 if __name__ == '__main__':
