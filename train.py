@@ -308,10 +308,11 @@ def main(args):
         print('\tTime: {:.0f} Epoch Time: {:.0f}'.format(t1 - t0, t1 - t2), file=log_sstream)
         logger.info(log_sstream.getvalue())
         t2 = time.time()
-        early_stopping(-test_accuracy)
-        if early_stopping.early_stop:
-            print("Early stopping")
-            break
+        if get_lr(optimizer) < lr*0.0001:
+            early_stopping(-test_accuracy)
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
 
     results['time'] = t2 - t0
     results['train_loss'] = np.mean(train_losses[-args.results_averaging_window:])
