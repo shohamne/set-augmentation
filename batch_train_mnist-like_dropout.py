@@ -30,7 +30,7 @@ tasks = []
 
 task_id = -1
 
-for seed in range(103,105):
+for seed in range(100,115):
     for network_with_factor in [1, 2, 4]:
         for set_size in [500]:
             for dropout in [0.05, 0.1, 0.5, 1.0]:
