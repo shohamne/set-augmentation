@@ -31,7 +31,7 @@ tasks = []
 task_id = -1
 
 for seed in range(100,115):
-    for network_with_factor in [1, 2, 4]:
+    for network_width_factor in [1, 2, 4]:
         for set_size in [500]:
             for dropout in [0.05, 0.1, 0.5, 1.0]:
                 max_sets_number_train = np.floor(1/dropout)
@@ -46,7 +46,8 @@ for seed in range(100,115):
                     new_args.new_sets_number_test = 1
                     new_args.set_size_range_train = [set_size, set_size]
                     new_args.set_size_range_test = [set_size, set_size]
-                    new_args.network_with_factor = network_with_factor
+                    new_args.network_width_factor = network_width_factor
+                    train.args.real_epochs_in_epoch = int(20/new_sets_number_train)
                     new_args.seed = seed
                     tasks.append(new_args)
 

@@ -2,7 +2,8 @@ import pandas as pd
 import pylab as plt
 import glob
 
-LOG_ID = '0'
+LOGS_DIR = 'logs_like_dropout'
+LOG_ID = '2'
 
 def parse_line(line):
     train_line, test_line  = line.split('Test set: ')
@@ -25,7 +26,7 @@ def parse_line(line):
     return ret
 
 content = []
-for fname in glob.glob('logs/*'):
+for fname in glob.glob('{}/*'.format(LOGS_DIR)):
     with open(fname) as f:
         content += f.readlines()
 
@@ -37,9 +38,12 @@ df = df.set_index('epoch').sort_index()
 
 #plt.figure('loss')
 df[['train_loss', 'test_loss']].plot()
+plt.title('LOG ID = {}'.format(LOG_ID))
 
 #plt.figure('accuracy')
 df[['train_accuracy', 'test_accuracy']].plot()
+plt.title('LOG ID = {}'.format(LOG_ID))
+
 
 plt.show()
 

@@ -27,6 +27,8 @@ parser.add_argument('--batch-size', type=int, default=50, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
+parser.add_argument('--real-epochs-in-epoch', type=int, default=1, metavar='N',
+                    help='number of real epochs in epoch')
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=1e-1, metavar='LR',
@@ -164,7 +166,7 @@ def main(args):
 
     class Net(nn.Module):
         def __init__(self):
-            w = args.network_with_factor
+            w = args.network_width_factor
             super(Net, self).__init__()
             self.fc1 = nn.Linear(2, 100*w)  # , bias=False)
             torch.nn.init.xavier_uniform(self.fc1.weight)
@@ -209,24 +211,25 @@ def main(args):
         model.train()
         losses = []
         accuracies = []
-        for batch_idx, (data, target) in enumerate(train_loader):
-            data = dropout(data, args.dropout_ratio)
-            data, target = data.to(device), target.to(device)
-            if data.shape[0] <= 1:
-                continue
-            optimizer.zero_grad()
-            output = model(data)
-            loss = F.nll_loss(output, target)
-            correct = output.topk(1)[1].reshape(target.shape) == target
-            accuracy = np.mean(np.float32(correct.cpu()))
-            loss.backward()
-            optimizer.step()
-            # if batch_idx % args.log_interval == 0:
-            #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.2f}\tLR: {}'.format(
-            #         epoch, batch_idx * len(data), len(train_loader.dataset),
-            #         100. * batch_idx / len(train_loader), loss.item(), accuracy, lr))
-            losses.append(loss.item())
-            accuracies.append(accuracy)
+        for real_epoch_idx in range(args.real_epochs_in_epoch):
+            for batch_idx, (data, target) in enumerate(train_loader):
+                data = dropout(data, args.dropout_ratio)
+                data, target = data.to(device), target.to(device)
+                if data.shape[0] <= 1:
+                    continue
+                optimizer.zero_grad()
+                output = model(data)
+                loss = F.nll_loss(output, target)
+                correct = output.topk(1)[1].reshape(target.shape) == target
+                accuracy = np.mean(np.float32(correct.cpu()))
+                loss.backward()
+                optimizer.step()
+                # if batch_idx % args.log_interval == 0:
+                #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAccuracy: {:.2f}\tLR: {}'.format(
+                #         epoch, batch_idx * len(data), len(train_loader.dataset),
+                #         100. * batch_idx / len(train_loader), loss.item(), accuracy, lr))
+                losses.append(loss.item())
+                accuracies.append(accuracy)
 
         mean_losses = np.mean(losses)
         mean_accuracy = np.mean(accuracies)
